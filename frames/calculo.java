@@ -218,8 +218,12 @@ int c = 0;
         // Inicio del tiempo de ejecución
         long inicio = System.nanoTime();
 
+        // Ordenar la lista usando MergeSort concurrente
+        ForkJoinPool pool = new ForkJoinPool();
+        myList = pool.invoke(new MergeSortTask(myList));
+        
         // Ordenar la lista usando MergeSort secuencial
-        myList = mergeSort(myList);
+        //myList = mergeSort(myList);
 
         // Fin del tiempo de ejecución
         long fin = System.nanoTime();
@@ -411,7 +415,66 @@ int c = 0;
 
         return mergedList;
     }
+    
+    static class MergeSortTask extends RecursiveTask<LinkedList<Object[]>> {
+        private LinkedList<Object[]> list;
+
+        MergeSortTask(LinkedList<Object[]> list) {
+            this.list = list;
+        }
+
+        @Override
+        protected LinkedList<Object[]> compute() {
+            if (list.size() <= 1) {
+                return list;
+            }
+
+            int mid = list.size() / 2;
+            LinkedList<Object[]> leftList = new LinkedList<>();
+            LinkedList<Object[]> rightList = new LinkedList<>();
+
+            int count = 0;
+            for (Object[] tuple : list) {
+                if (count < mid) {
+                    leftList.add(tuple);
+                } else {
+                    rightList.add(tuple);
+                }
+                count++;
+            }
+
+            MergeSortTask leftTask = new MergeSortTask(leftList);
+            MergeSortTask rightTask = new MergeSortTask(rightList);
+
+            leftTask.fork();
+            rightList = rightTask.compute();
+            leftList = leftTask.join();
+
+            return merge(leftList, rightList);
+        }
+
+        private LinkedList<Object[]> merge(LinkedList<Object[]> left, LinkedList<Object[]> right) {
+            LinkedList<Object[]> mergedList = new LinkedList<>();
+
+            while (!left.isEmpty() && !right.isEmpty()) {
+                if ((int) left.peek()[0] <= (int) right.peek()[0]) { // Ordenar de menor a mayor
+                    mergedList.add(left.poll());
+                } else {
+                    mergedList.add(right.poll());
+                }
+            }
+
+            while (!left.isEmpty()) {
+                mergedList.add(left.poll());
+            }
+
+            while (!right.isEmpty()) {
+                mergedList.add(right.poll());
+            }
+
+            return mergedList;
+        }
+    }
 }
     
-
 
