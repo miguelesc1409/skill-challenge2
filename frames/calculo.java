@@ -21,6 +21,8 @@ import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.table.DefaultTableModel;
+import java.util.concurrent.RecursiveTask;
+import java.util.concurrent.ForkJoinPool;
         
 
 
@@ -216,8 +218,8 @@ int c = 0;
         // Inicio del tiempo de ejecución
         long inicio = System.nanoTime();
 
-         // Ordena la lista utilizando Quicksort
-        myList = quickSort(myList, 0, myList.size() - 1);
+        // Ordenar la lista usando MergeSort secuencial
+        myList = mergeSort(myList);
 
         // Fin del tiempo de ejecución
         long fin = System.nanoTime();
@@ -225,7 +227,7 @@ int c = 0;
         // Cálculo del tiempo transcurrido en nanosegundos
         long tiempoTranscurrido = fin - inicio;
 
-        System.out.println("Quicksort\nTiempo de ejecución: " + tiempoTranscurrido + " ns");
+        System.out.println("Mergesort\nTiempo de ejecución: " + tiempoTranscurrido + " ns");
 
         
         
@@ -299,7 +301,7 @@ int c = 0;
         
         System.out.println("inicia buscar con id "+id);
         
-            int position = binarySearch(myList, id);
+            int position = ternarySearch(myList, id);
 
         // Mostrar el resultado
         if (position != -1) {
@@ -314,7 +316,7 @@ int c = 0;
         // Cálculo del tiempo transcurrido en nanosegundos
         long tiempoTranscurrido = fin - inicio;
 
-        System.out.println("Busqueda binaria\nTiempo de ejecución: " + tiempoTranscurrido + " ns");
+        System.out.println("Busqueda ternaria\nTiempo de ejecución: " + tiempoTranscurrido + " ns");
         
         DefaultTableModel model = (DefaultTableModel) tblCalculo.getModel();
         
@@ -331,25 +333,85 @@ int c = 0;
             System.out.println(tree);*/
     }
     
-    // Método de búsqueda binaria
-    public static int binarySearch(LinkedList<Object[]> list, int targetId) {
-        int left = 0;
-        int right = list.size() - 1;
+    // Método de búsqueda ternaria
+    public static int ternarySearch(LinkedList<Object[]> list, int targetId) {
+        return ternarySearch(list, targetId, 0, list.size() - 1);
+    }
 
-        while (left <= right) {
-            int mid = left + (right - left) / 2;
-            int midId = (int) list.get(mid)[0];
-            System.out.println(midId);
+    private static int ternarySearch(LinkedList<Object[]> list, int targetId, int left, int right) {
+        if (right >= left) {
+            int mid1 = left + (right - left) / 3;
+            int mid2 = right - (right - left) / 3;
 
-            if (midId == targetId) {
-                return mid; // Id encontrado, retorna la posición
-            } else if (midId < targetId) {
-                left = mid + 1;
+            int mid1Id = (int) list.get(mid1)[0];
+            int mid2Id = (int) list.get(mid2)[0];
+
+            if (mid1Id == targetId) {
+                return mid1; // Id encontrado en mid1
+            }
+            if (mid2Id == targetId) {
+                return mid2; // Id encontrado en mid2
+            }
+
+            if (targetId < mid1Id) {
+                return ternarySearch(list, targetId, left, mid1 - 1);
+            } else if (targetId > mid2Id) {
+                return ternarySearch(list, targetId, mid2 + 1, right);
             } else {
-                right = mid - 1;
+                return ternarySearch(list, targetId, mid1 + 1, mid2 - 1);
             }
         }
 
         return -1; // Id no encontrado
     }
+    
+    public static LinkedList<Object[]> mergeSort(LinkedList<Object[]> list) {
+        if (list.size() <= 1) {
+            return list;
+        }
+
+        int mid = list.size() / 2;
+        LinkedList<Object[]> leftList = new LinkedList<>();
+        LinkedList<Object[]> rightList = new LinkedList<>();
+
+        int count = 0;
+        for (Object[] tuple : list) {
+            if (count < mid) {
+                leftList.add(tuple);
+            } else {
+                rightList.add(tuple);
+            }
+            count++;
+        }
+
+        leftList = mergeSort(leftList);
+        rightList = mergeSort(rightList);
+
+        return merge(leftList, rightList);
+    }
+
+    private static LinkedList<Object[]> merge(LinkedList<Object[]> left, LinkedList<Object[]> right) {
+        LinkedList<Object[]> mergedList = new LinkedList<>();
+
+        while (!left.isEmpty() && !right.isEmpty()) {
+            if ((int) left.peek()[0] <= (int) right.peek()[0]) { // Ordenar de menor a mayor
+                mergedList.add(left.poll());
+            } else {
+                mergedList.add(right.poll());
+            }
+        }
+
+        while (!left.isEmpty()) {
+            mergedList.add(left.poll());
+        }
+
+        while (!right.isEmpty()) {
+            mergedList.add(right.poll());
+        }
+
+        return mergedList;
+    }
 }
+    
+
+
